@@ -20,7 +20,7 @@ function AuthProvider({ children }){
             localStorage.setItem("NotasFácil:token", token);
 
 
-            api.defaults.headers.autorization = `Bearer ${token}`;
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             setData({ user, token });
 
         }  catch (error) {
@@ -33,12 +33,49 @@ function AuthProvider({ children }){
         }
     }
 
+    function signOut(){
+        localStorage.removeItem("NotasFácil:token");
+        localStorage.removeItem("NotasFácil:user");
+
+        setData({});
+    }
+
+    async function updateProfile({ user, avatarFile }){
+        try {
+            if(avatarFile){
+                const fileUploadForm = new FormData();
+                fileUploadForm.append("avatar", avatarFile);
+
+                const response = await api.patch("/users/avatar", fileUploadForm);
+                user.avatar = response.data.avatar;
+            }
+
+
+            await api.put("/users", user);
+            localStorage.setItem("NotasFácil:user", JSON.stringify(user));
+
+            setData({user, token: data.token });
+
+            alert("Perfil atualizado!");
+
+
+        }  catch (error) {
+            if(error.response){
+                alert(error.response.data.message);
+            }else{
+                alert("Não foi possivel atualizar o perfil.");
+
+            }
+        
+        }
+    }
+
     useEffect(() => {
         const token = localStorage.getItem("NotasFácil:token");
         const user = localStorage.getItem("NotasFácil:user");
 
         if(token && user){
-            api.defaults.headers.autorization = `Bearer ${token}`;
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         setData({
             token,
@@ -51,7 +88,13 @@ function AuthProvider({ children }){
     }, []);
 
     return(
-        <AuthContext.Provider value={{ signIn, user: data.user }}>
+        <AuthContext.Provider value={{ 
+            signIn, 
+            user: data.user,
+            updateProfile,
+            signOut
+            }}
+            >
             { children }
         </AuthContext.Provider>
     )
